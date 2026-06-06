@@ -22,6 +22,7 @@ export const Header = () => {
           <NavLink to="/popular/book" className="hover:text-white">Books</NavLink>
           <NavLink to="/activity" className="hover:text-white">Activity</NavLink>
           {user && <NavLink to="/feed" className="hover:text-white">Feed</NavLink>}
+          {user && <NavLink to="/library" className="hover:text-white">Library</NavLink>}
           {user && <NavLink to="/lists" className="hover:text-white">Lists</NavLink>}
         </nav>
         <div className="flex flex-1 gap-2 md:justify-end">

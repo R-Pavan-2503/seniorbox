@@ -57,7 +57,9 @@ export const getBookDetail = async (id: string): Promise<MediaDetail> => {
     media_type: "book",
     description,
     cast: data.subjects?.slice(0, 8) ?? [],
-    global_rating: null
+    global_rating: null,
+    source_url: `https://openlibrary.org/works/${encodeURIComponent(id)}`,
+    imdb_url: null
   };
 };
 

@@ -9,6 +9,7 @@ import { DiaryPage } from "./pages/DiaryPage";
 import { HomePage } from "./pages/HomePage";
 import { ListDetailPage } from "./pages/ListDetailPage";
 import { ListsPage } from "./pages/ListsPage";
+import { LibraryPage } from "./pages/LibraryPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MediaDetailPage } from "./pages/MediaDetailPage";
 import { PopularPage } from "./pages/PopularPage";
@@ -35,6 +36,7 @@ export const App = () => (
             <Route path="/lists/:id" element={<ListDetailPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/feed" element={<ActivityPage followedOnly />} />
+              <Route path="/library" element={<LibraryPage />} />
               <Route path="/lists" element={<ListsPage />} />
             </Route>
           </Routes>

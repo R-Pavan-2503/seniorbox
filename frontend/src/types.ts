@@ -14,6 +14,8 @@ export interface MediaDetail extends NormalizedMedia {
   description: string | null;
   cast: string[];
   global_rating: number | null;
+  source_url: string | null;
+  imdb_url?: string | null;
 }
 
 export interface Profile {
@@ -65,6 +67,8 @@ export interface UserList {
   created_at: string;
   list_items?: ListItem[];
   profiles?: Profile;
+  liked_by_me?: boolean;
+  list_comments?: ListComment[];
 }
 
 export interface ListComment {

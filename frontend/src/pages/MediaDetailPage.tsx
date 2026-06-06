@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Heart } from "lucide-react";
+import { Clock, ExternalLink, Heart } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -57,6 +57,17 @@ export const MediaDetailPage = () => {
     }
   };
 
+  const removeLog = async (id: string, message: string) => {
+    if (!requireLogin()) return;
+    try {
+      await api.deleteLog(id);
+      queryClient.invalidateQueries({ queryKey: ["my-logs"] });
+      showToast(message);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Action failed");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="grid gap-6 md:grid-cols-[220px_1fr]">
@@ -66,21 +77,33 @@ export const MediaDetailPage = () => {
           <h1 className="text-3xl font-semibold">{detail.title}</h1>
           <p className="mt-2 text-zinc-400">{detail.description ?? "No description available."}</p>
           <p className="mt-3 text-sm text-zinc-400">Global rating: {detail.global_rating ? detail.global_rating.toFixed(1) : "Unavailable"}</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            {detail.source_url && (
+              <a href={detail.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-zinc-300 hover:bg-zinc-900">
+                <ExternalLink className="h-4 w-4" /> {detail.media_type === "book" ? "Open Library" : "Trakt details"}
+              </a>
+            )}
+            {detail.imdb_url && (
+              <a href={detail.imdb_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-zinc-300 hover:bg-zinc-900">
+                <ExternalLink className="h-4 w-4" /> IMDb
+              </a>
+            )}
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => { if (!isConsumed && requireLogin()) setModalAction("diary_entry"); }}
+              onClick={() => { if (requireLogin()) setModalAction("diary_entry"); }}
               className={isConsumed ? "rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white" : "rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white"}
             >
-              {isConsumed ? "Logged" : "Log"}
+              {isConsumed ? "Edit log" : "Log"}
             </button>
-            <button type="button" onClick={() => { if (!isLiked) quick("like"); }} className={isLiked ? "flex items-center gap-2 rounded-md border border-rose-700 bg-rose-700 px-4 py-2 text-sm text-white" : "flex items-center gap-2 rounded-md border px-4 py-2 text-sm"}><Heart className="h-4 w-4" /> {isLiked ? "Liked" : "Like"}</button>
+            <button type="button" onClick={() => { if (likeLog) removeLog(likeLog.id, "Removed like"); else quick("like"); }} className={isLiked ? "flex items-center gap-2 rounded-md border border-rose-700 bg-rose-700 px-4 py-2 text-sm text-white" : "flex items-center gap-2 rounded-md border px-4 py-2 text-sm"}><Heart className="h-4 w-4" /> {isLiked ? "Unlike" : "Like"}</button>
             <button
               type="button"
-              onClick={() => { if (!isConsumed && !isQueued) quick("watchlist"); }}
+              onClick={() => { if (watchlistLog) removeLog(watchlistLog.id, "Removed from queue"); else if (!isConsumed) quick("watchlist"); }}
               className={isConsumed || isQueued ? "flex items-center gap-2 rounded-md border border-sky-700 bg-sky-700 px-4 py-2 text-sm text-white" : "flex items-center gap-2 rounded-md border px-4 py-2 text-sm"}
             >
-              <Clock className="h-4 w-4" /> {isConsumed ? "Consumed" : isQueued ? "Queued" : "Queue"}
+              <Clock className="h-4 w-4" /> {isConsumed ? "Consumed" : isQueued ? "Remove queue" : "Queue"}
             </button>
             <StarRating score={visibleRating} onChange={(score) => {
               if (!requireLogin()) return;
@@ -111,7 +134,16 @@ export const MediaDetailPage = () => {
           ))}
         </div>
       </section>
-      {modalAction && <LogModal mediaId={detail.external_media_id} mediaType={detail.media_type} title={detail.title} initialAction={modalAction} onClose={() => setModalAction(null)} />}
+      {modalAction && (
+        <LogModal
+          mediaId={detail.external_media_id}
+          mediaType={detail.media_type}
+          title={detail.title}
+          initialAction={modalAction}
+          initialLog={modalAction === "diary_entry" ? diaryLog : ratingLog}
+          onClose={() => setModalAction(null)}
+        />
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler, HttpError } from "../middleware/error.js";
-import { supabaseAdmin } from "../supabase.js";
+import { supabaseAdmin, supabaseForToken } from "../supabase.js";
 import type { AuthedRequest } from "../types.js";
 import { attachProfiles } from "../utils/profiles.js";
 
@@ -39,17 +39,29 @@ router.get(
   "/:id",
   asyncHandler(async (req, res) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    const bearer = req.headers.authorization?.startsWith("Bearer ") ? req.headers.authorization.slice(7) : null;
+    const authedUser = bearer ? (await supabaseForToken(bearer).auth.getUser(bearer)).data.user : null;
     const { data, error } = await supabaseAdmin
       .from("lists")
       .select("*,list_items(*)")
       .eq("id", id)
       .single();
     if (error) throw new HttpError(404, "List not found");
-    if (data.visibility !== "public") throw new HttpError(403, "This list is not public");
+    if (data.visibility !== "public" && data.user_id !== authedUser?.id) throw new HttpError(403, "This list is not public");
     const comments = await supabaseAdmin.from("list_comments").select("*").eq("list_id", id).order("created_at", { ascending: false });
     if (comments.error) throw new HttpError(500, comments.error.message);
+    const likedByMe = authedUser
+      ? await supabaseAdmin.from("list_likes").select("user_id").eq("list_id", id).eq("user_id", authedUser.id).maybeSingle()
+      : { data: null, error: null };
+    if (likedByMe.error) throw new HttpError(500, likedByMe.error.message);
     const [list] = await attachProfiles([data] as Array<{ user_id: string }>);
-    res.json({ list: { ...list, list_comments: await attachProfiles((comments.data ?? []) as Array<{ user_id: string }>) } });
+    res.json({
+      list: {
+        ...list,
+        liked_by_me: Boolean(likedByMe.data),
+        list_comments: await attachProfiles((comments.data ?? []) as Array<{ user_id: string }>)
+      }
+    });
   })
 );
 

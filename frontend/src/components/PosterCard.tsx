@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Clock, Eye, Heart } from "lucide-react";
+import { BookOpen, Clock, Eye, Heart, Star } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -54,14 +54,25 @@ export const PosterCard = ({ media }: { media: NormalizedMedia }) => {
     }
   };
 
+  const removeLog = async (id: string, message: string) => {
+    if (!requireLogin()) return;
+    try {
+      await api.deleteLog(id);
+      queryClient.invalidateQueries({ queryKey: ["my-logs"] });
+      showToast(message);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Action failed");
+    }
+  };
+
   return (
     <article className="group relative overflow-hidden rounded-md bg-zinc-900">
       <Link to={`/media/${media.media_type}/${encodeURIComponent(media.external_media_id)}`}>
         <img src={media.poster_url} alt={media.title} className="aspect-[2/3] w-full object-cover" />
       </Link>
-      <div className="absolute inset-0 flex flex-col justify-between bg-black/80 p-2 opacity-0 transition group-hover:opacity-100">
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/80 p-2 opacity-0 transition group-hover:opacity-100">
         <div className="text-xs font-medium text-white">{media.title}</div>
-        <div className="space-y-2">
+        <div className="pointer-events-auto space-y-2">
           <div className="flex justify-center">
             <StarRating score={visibleRating} compact onChange={(score) => {
               if (!requireLogin()) return;
@@ -74,22 +85,22 @@ export const PosterCard = ({ media }: { media: NormalizedMedia }) => {
           <div className="grid grid-cols-4 gap-1">
             <button
               type="button"
-              title={isConsumed ? "Already logged" : "Watched or read"}
-              onClick={() => { if (!isConsumed && requireLogin()) setModalAction("diary_entry"); }}
+              title={isConsumed ? "Edit watched/read log" : "Watched or read"}
+              onClick={() => { if (requireLogin()) setModalAction("diary_entry"); }}
               className={isConsumed ? "rounded bg-emerald-700 p-2 text-white" : "rounded bg-zinc-800 p-2 hover:bg-emerald-700"}
             >
               {media.media_type === "book" ? <BookOpen className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
-            <button type="button" title={isLiked ? "Liked" : "Like"} onClick={() => { if (!isLiked) quickLog("like"); }} className={isLiked ? "rounded bg-rose-700 p-2 text-white" : "rounded bg-zinc-800 p-2 hover:bg-rose-700"}>
+            <button type="button" title={isLiked ? "Unlike" : "Like"} onClick={() => { if (likeLog) removeLog(likeLog.id, "Removed like"); else quickLog("like"); }} className={isLiked ? "rounded bg-rose-700 p-2 text-white" : "rounded bg-zinc-800 p-2 hover:bg-rose-700"}>
               <Heart className="h-4 w-4" />
             </button>
             <button type="button" title="Rate" onClick={() => { if (requireLogin()) setModalAction("rating_only"); }} className="rounded bg-zinc-800 p-2 text-xs hover:bg-amber-700">
-              Star
+              <Star className="h-4 w-4" />
             </button>
             <button
               type="button"
-              title={isConsumed ? "Already logged" : isQueued ? "Already queued" : "Watchlist or TBR"}
-              onClick={() => { if (!isConsumed && !isQueued) quickLog("watchlist"); }}
+              title={isQueued ? "Remove from watchlist / TBR" : "Watchlist or TBR"}
+              onClick={() => { if (watchlistLog) removeLog(watchlistLog.id, "Removed from queue"); else if (!isConsumed) quickLog("watchlist"); }}
               className={isConsumed || isQueued ? "rounded bg-sky-700 p-2 text-white" : "rounded bg-zinc-800 p-2 hover:bg-sky-700"}
             >
               <Clock className="h-4 w-4" />
@@ -107,10 +118,19 @@ export const PosterCard = ({ media }: { media: NormalizedMedia }) => {
         </div>
       </div>
       <div className="p-2">
-        <h3 className="truncate text-sm font-medium">{media.title}</h3>
+        <h3 className="truncate text-sm font-medium"><Link to={`/media/${media.media_type}/${encodeURIComponent(media.external_media_id)}`} className="hover:text-emerald-400">{media.title}</Link></h3>
         <p className="text-xs capitalize text-zinc-500">{media.media_type} {media.release_year ? `- ${media.release_year}` : ""}</p>
       </div>
-      {modalAction && <LogModal mediaId={media.external_media_id} mediaType={media.media_type} title={media.title} initialAction={modalAction} onClose={() => setModalAction(null)} />}
+      {modalAction && (
+        <LogModal
+          mediaId={media.external_media_id}
+          mediaType={media.media_type}
+          title={media.title}
+          initialAction={modalAction}
+          initialLog={modalAction === "diary_entry" ? diaryLog : ratingLog}
+          onClose={() => setModalAction(null)}
+        />
+      )}
     </article>
   );
 };

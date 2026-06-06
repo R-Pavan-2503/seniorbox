@@ -42,6 +42,7 @@ const traktHeaders = {
 };
 
 const mediaId = (ids: TraktIds | undefined): string => String(ids?.imdb ?? ids?.trakt ?? ids?.slug ?? "");
+const traktPathId = (ids: TraktIds | undefined, fallback: string): string => String(ids?.slug ?? ids?.trakt ?? fallback);
 
 const normalizeTrakt = async (item: TraktSearchItem): Promise<NormalizedMedia | null> => {
   const source = item.type === "show" ? item.show : item.movie;
@@ -89,7 +90,9 @@ export const getTraktDetail = async (type: Exclude<MediaType, "book">, id: strin
     media_type: type,
     description: data.overview ?? null,
     cast: castPayload.cast?.map((entry) => entry.person?.name).filter((name): name is string => Boolean(name)).slice(0, 12) ?? [],
-    global_rating: data.rating ?? null
+    global_rating: data.rating ?? null,
+    source_url: `https://trakt.tv/${endpoint}/${encodeURIComponent(traktPathId(data.ids, id))}`,
+    imdb_url: data.ids?.imdb ? `https://www.imdb.com/title/${encodeURIComponent(data.ids.imdb)}/` : null
   };
 };
 

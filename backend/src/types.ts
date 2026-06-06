@@ -17,6 +17,8 @@ export interface MediaDetail extends NormalizedMedia {
   description: string | null;
   cast: string[];
   global_rating: number | null;
+  source_url: string | null;
+  imdb_url?: string | null;
 }
 
 export interface AuthedRequest extends Request {

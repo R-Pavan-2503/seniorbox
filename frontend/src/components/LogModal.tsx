@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { api } from "../api/client";
-import type { ActionType, MediaType } from "../types";
+import type { ActionType, LogEntry, MediaType } from "../types";
 import { StarRating } from "./StarRating";
 import { useToast } from "./Toast";
 
@@ -11,16 +11,17 @@ interface LogModalProps {
   mediaType: MediaType;
   title: string;
   initialAction: ActionType;
+  initialLog?: LogEntry | null;
   onClose: () => void;
 }
 
-export const LogModal = ({ mediaId, mediaType, title, initialAction, onClose }: LogModalProps) => {
-  const [rating, setRating] = useState<number | null>(null);
-  const [review, setReview] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [isRewatch, setIsRewatch] = useState(false);
-  const [hasSpoilers, setHasSpoilers] = useState(false);
-  const [tags, setTags] = useState("");
+export const LogModal = ({ mediaId, mediaType, title, initialAction, initialLog, onClose }: LogModalProps) => {
+  const [rating, setRating] = useState<number | null>(initialLog?.rating ?? null);
+  const [review, setReview] = useState(initialLog?.review_text ?? "");
+  const [date, setDate] = useState(initialLog?.date_consumed ?? new Date().toISOString().slice(0, 10));
+  const [isRewatch, setIsRewatch] = useState(initialLog?.is_rewatch ?? false);
+  const [hasSpoilers, setHasSpoilers] = useState(initialLog?.has_spoilers ?? false);
+  const [tags, setTags] = useState(initialLog?.tags?.join(", ") ?? "");
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 

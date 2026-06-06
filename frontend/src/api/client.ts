@@ -51,12 +51,14 @@ const token = async (): Promise<string | null> => {
   return data.session?.access_token ?? null;
 };
 
-const request = async <T>(path: string, init: RequestInit = {}, authed = false): Promise<T> => {
+type AuthMode = boolean | "optional";
+
+const request = async <T>(path: string, init: RequestInit = {}, authed: AuthMode = false): Promise<T> => {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
   if (authed) {
     const accessToken = await token();
-    if (!accessToken) throw new Error("Please log in to continue");
+    if (!accessToken && authed === true) throw new Error("Please log in to continue");
     if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
   }
   const response = await fetch(`${API_URL}${path}`, { ...init, headers });
@@ -83,7 +85,7 @@ export const api = {
   unfollow: (id: string) => request<void>(`/api/users/${id}/follow`, { method: "DELETE" }, true),
   publicLists: () => request<ListsResponse>("/api/lists/public"),
   myLists: () => request<ListsResponse>("/api/lists/mine/all", {}, true),
-  list: (id: string) => request<ListResponse>(`/api/lists/${id}`),
+  list: (id: string, includePrivate = false) => request<ListResponse>(`/api/lists/${id}`, {}, includePrivate ? "optional" : false),
   createList: (payload: ListPayload) => request<ListResponse>("/api/lists", { method: "POST", body: JSON.stringify(payload) }, true),
   updateList: (id: string, payload: Partial<ListPayload>) =>
     request<ListResponse>(`/api/lists/${id}`, { method: "PUT", body: JSON.stringify(payload) }, true),
